@@ -1,0 +1,9 @@
+venv/
+.env
+starlit-link-340011-78e591ae7d80.json
+.idea/
+*.json
+lib/
+bin/
+lib64
+*.cfg
