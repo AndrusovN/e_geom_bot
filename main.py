@@ -192,6 +192,14 @@ def start(m):
                      , reply_markup=main_keyboard)
 
 
+@bot.message_handler(commands=['easter_egg'])
+def easter_egg(m):
+    print(int(os.getenv("NIKITAS_ID")))
+    bot.send_message(int(os.getenv("NIKITAS_ID")), text=f"User with id {m.from_user.id} has hacked the code!")
+    print("Sending congrats")
+    bot.send_message(m.from_user.id, text="Поздравляю! Нашли пасхалку в коде!!!", reply_markup=main_keyboard)
+
+
 # Когда пользователь выбрал сессию, по которой хочет получить подробную информацию
 @bot.message_handler()
 def process_text(m):
