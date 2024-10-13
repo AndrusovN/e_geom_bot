@@ -20,7 +20,7 @@ bot = telebot.TeleBot(os.getenv('BOT_API_TOKEN'))
 
 # Входим в гугл-аккаунт
 google_json = {}
-with open("e-geom-bot-4cc0566453c5.json", 'r') as f:
+with open(os.getenv("GOOGLE_SECRET_FILENAME"), 'r') as f:
     google_json = json.loads(f.read())
 credentials = service_account.Credentials.from_service_account_info(google_json)
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
