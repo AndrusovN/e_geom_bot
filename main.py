@@ -192,13 +192,59 @@ def start(m):
                      , reply_markup=main_keyboard)
 
 
+# Какой-то там код, чё-то там делает
 @bot.message_handler(commands=['easter_egg'])
 def easter_egg(m):
-    print(int(os.getenv("NIKITAS_ID")))
     bot.send_message(int(os.getenv("NIKITAS_ID")), text=f"User with id {m.from_user.id} has hacked the code!")
-    print("Sending congrats")
-    bot.send_message(m.from_user.id, text="Поздравляю! Нашли пасхалку в коде!!!", reply_markup=main_keyboard)
+    bot.send_message(m.from_user.id, text="Поздравляю! Вы нашли пасхалку в коде!!!", reply_markup=main_keyboard)
 
+
+# Получение списка пар (ученик, сессия) - кто закрыл какую сессию
+# Список хранится на сервере - это то, о чём классрук уже знает
+def get_saved_passed_kids():
+    with open('passed_kids.json', 'r') as f:
+        data = json.loads(f.read())
+        return set([(item["name"], item["sheet"]) for item in data["passed"]])
+
+# Получение списка пар (ученик, сессия) - кто закрыл какую сессию
+# Список хранится в облаке - более актуальная информация
+def get_cloud_passed_kids():
+    sheets = get_list_of_sheets()
+    result = []
+    # Итерируемся по всем листам в таблице (то есть по всем сессиям)
+    for _, title, sheet in sheets:
+        # В каждой сессии выбираем учеников, у которых в колонке "СТАТУС" стоит "+"
+        for id, name in enumerate(sheet[0]):
+            if sheet[4][id] == '+':
+                result.append({
+                    "name": name,
+                    "sheet": title
+                })
+    return result
+
+# Команда от админа бота, что надо классруку обновить информацию о том, кто что сдал
+@bot.message_handler(commands=['update_passed'])
+def update_passed(m):
+    # Если сообщение пришло не от админа, то сори :(
+    if str(m.from_user.id) not in {str(os.getenv("NIKITAS_ID")), str(os.getenv("GRISHAS_ID"))}:
+        bot.send_message(m.from_user.id, text="Только админ может делать эту операцию!")
+        return
+    # Получаем данные из локального файла и из облака
+    already_saved = get_saved_passed_kids()
+    current = get_cloud_passed_kids()
+    counter = 0
+    # Итерируемся по закрывшим сессии
+    for item in current:
+        # Если человек есть в облаке, но его нет локально, значит про него классрук ещё не знает, и надо его оповестить
+        if (item["name"], item["sheet"]) not in already_saved:
+            counter += 1
+            bot.send_message(os.getenv("GRISHAS_ID"), text=f"{item['name']} закрыл(а) хвост по геометрии ({item['sheet']})\n🎉🎉🎉")
+    # Обновляем локальный файл новыми данными
+    with open('passed_kids.json', 'w') as f:
+        f.write(json.dumps({
+            "passed": current
+        }))
+    bot.send_message(m.from_user.id, text=f"Список закрывших сессии успешно обновлён, добавлено {counter} пар (ученик, сессия)!")
 
 # Когда пользователь выбрал сессию, по которой хочет получить подробную информацию
 @bot.message_handler()
@@ -234,7 +280,7 @@ def process_text(m):
 # Вечно работающий бот
 while True:
      try:
-         bot.infinity_polling(timeout=60, long_polling_timeout=60, none_stop=True, logger_level=0)
+         bot.infinity_polling(timeout=60, long_polling_timeout=60, none_stop=True)
      except KeyboardInterrupt:
          exit(0)
      except Exception as e:
