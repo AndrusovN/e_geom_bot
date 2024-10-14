@@ -76,6 +76,15 @@ def get_common_info(sheet, row):
 
 # Когда встретим эти слова в таблице, надо будет выписать то, что под ними
 keywords = ["Зачёт", "РНО", "Перезачёт", "РНО по перезачёту", "Листок", "Доп. отработка"]
+# Где в таблице смотреть, есть ли вообще у ученика эта отработка?
+keyword_checks = {
+    "Зачёт": 111,
+    "РНО": 32,
+    "Перезачёт": 33,
+    "РНО по перезачёту": 33,
+    "Листок": 34,
+    "Доп. отработка": 35
+}
 marker_words = {"(оценка)", "(комментарий)"}
 main_words = ["Итоговая оценка", "Характеристика", "Отработка"]
 
@@ -107,13 +116,15 @@ def get_title(title: str):
 # Функция, которая собирает подробную информацию о сессии
 def get_main_info(sheet, row):
     text_main_words = ""
-    text_keywords = {word: "" for word in keywords}
+    # Те отработки, которые есть конкретно у этого ученика
+    needed_keywords = set(filter(lambda word: str(sheet[keyword_checks[word]][row]) == "TRUE", keywords))
+    text_keywords = {word: "" for word in needed_keywords}
 
     # Перебираем все столбцы в таблице
     for column_id in sheet:
          column = sheet[column_id]
          # Если столбец с важным словом, дописываем эту информацию к тексту
-         if column[0] in keywords and column[row] != "":
+         if column[0] in needed_keywords and column[row] != "":
              title = column[1]
              title, marker = get_title(title)
              if title is not None:
@@ -122,7 +133,7 @@ def get_main_info(sheet, row):
          elif column[1] in main_words:
              text_main_words += f"\n{column[1]}:\n{column[row]}"
     # Собираем весь текст вместе
-    return text_main_words + '\n\n' + '\n\n'.join([f"{word}:\n{text_keywords[word]}" for word in keywords])
+    return text_main_words + '\n\n' + '\n\n'.join([f"{word}:\n{text_keywords[word]}" for word in needed_keywords])
 
 # Функция, которая отправляет краткую статистику
 @bot.message_handler(func=lambda m: m.text=="Краткая статистика по всем сессиям")
@@ -195,7 +206,7 @@ def start(m):
 # Какой-то там код, чё-то там делает
 @bot.message_handler(commands=['easter_egg'])
 def easter_egg(m):
-    bot.send_message(int(os.getenv("NIKITAS_ID")), text=f"User with id {m.from_user.id} has hacked the code!")
+    bot.send_message(int(os.getenv("ADMIN_ID")), text=f"User with id {m.from_user.id} has hacked the code!")
     bot.send_message(m.from_user.id, text="Поздравляю! Вы нашли пасхалку в коде!!!", reply_markup=main_keyboard)
 
 
@@ -226,7 +237,7 @@ def get_cloud_passed_kids():
 @bot.message_handler(commands=['update_passed'])
 def update_passed(m):
     # Если сообщение пришло не от админа, то сори :(
-    if str(m.from_user.id) not in {str(os.getenv("NIKITAS_ID")), str(os.getenv("GRISHAS_ID"))}:
+    if str(m.from_user.id) not in {str(os.getenv("ADMIN_ID")), str(os.getenv("MAIN_TEACHER_ID"))}:
         bot.send_message(m.from_user.id, text="Только админ может делать эту операцию!")
         return
     # Получаем данные из локального файла и из облака
@@ -238,7 +249,7 @@ def update_passed(m):
         # Если человек есть в облаке, но его нет локально, значит про него классрук ещё не знает, и надо его оповестить
         if (item["name"], item["sheet"]) not in already_saved:
             counter += 1
-            bot.send_message(os.getenv("GRISHAS_ID"), text=f"{item['name']} закрыл(а) хвост по геометрии ({item['sheet']})\n🎉🎉🎉")
+            bot.send_message(os.getenv("MAIN_TEACHER_ID"), text=f"{item['name']} закрыл(а) хвост по геометрии ({item['sheet']})\n🎉🎉🎉")
     # Обновляем локальный файл новыми данными
     with open('passed_kids.json', 'w') as f:
         f.write(json.dumps({
