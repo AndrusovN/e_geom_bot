@@ -55,7 +55,7 @@ def get_user(sheet, user):
     if row == -1:
         # Перебираем строки ещё раз, смотрим на id пользователя
         for id, cell in enumerate(sheet[2]):
-            if cell != "" and cell.isalpha() and int(cell) == user.id:
+            if cell != "" and cell.isnumeric() and int(cell) == user.id:
                 row = id
                 break
     # Если ничего не нашли :(
